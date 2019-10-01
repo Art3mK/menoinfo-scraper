@@ -4,8 +4,13 @@ from pprint import pprint
 from bs4 import BeautifulSoup
 from time import sleep
 from feedgen.feed import FeedGenerator
+from datetime import date
+from datetime import timedelta
 
-url = 'http://pirkanmaa.menoinfo.fi/events?search_api_views_fulltext=&begin%5Bdate%5D=29.09.2019&begin%5Btime%5D=08%3A00&end%5Bdate%5D=29.09.2019&end%5Btime%5D=23%3A59&f[0]=county%3AHämeenkyrö&f[1]=county%3AIkaalinen&f[2]=county%3AKangasala&f[3]=county%3ALempäälä&f[4]=county%3ANokia&f[5]=county%3APirkkala&f[6]=county%3ATampere&f[7]=county%3AYlöjärvi'
+date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
+url = f'http://pirkanmaa.menoinfo.fi/events?search_api_views_fulltext=&begin[date]={date}&end[date]={date}&f[0]=county:Hämeenkyrö&f[1]=county:Ikaalinen&f[2]=county:Kangasala&f[3]=county:Lempäälä&f[4]=county:Nokia&f[5]=county:Pirkkala&f[6]=county:Tampere&f[7]=county:Ylöjärvi'
+
+movie_titles = []
 
 def get_page_count(url):
     response = requests.get(url)
@@ -15,6 +20,7 @@ def get_page_count(url):
     return int(page_number.group(1))
     
 def parse_page(url):
+    global movie_titles
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
     events_raw = soup.find_all("div",["row_image_event","row_no_image_event"])
@@ -22,16 +28,21 @@ def parse_page(url):
     for event in events_raw:
         category = event.find("div","event-category-wrapper").find("a","active").string
         if category == "Seniorit": continue
+        title_tag = event.find("div",{"class":"views-field-title"}).find("a")
+        title = title_tag.string
+        # Filter out movies duplicates
+        if category == "Elokuvat":
+            if title in movie_titles:
+                continue
+            movie_titles.append(title)
         date = event.find("div","views-field-field-event-date-and-time").find("span","field-content").string
         place = event.find("div","event-place-wrapper").string
         try:
             summary = event.find("div","views-field-body-summary").find("span","field-content").string
         except:
             summary = "summary is missing"
-        title_tag = event.find("div",{"class":"views-field-title"}).find("a")
-        title = title_tag.string
         event_url = f'http://pirkanmaa.menoinfo.fi{title_tag["href"]}'
-        event = {'title':title, 'date': date, 'place': place, 'summary': summary, 'url': event_url}
+        event = {'title':title, 'date': date, 'place': place, 'summary': summary, 'url': event_url, 'category': category}
         events.append(event)
     return events
 
@@ -48,13 +59,17 @@ def generate_feed(events):
         entry.id(event["url"])
         entry.title(event["title"])
         entry.summary(event["summary"])
+        entry.category(term=event["category"],scheme='something')
         entry.link(href=event["url"])
     fg.atom_file('atom.xml')
 
 if __name__ == "__main__":
     number_of_pages = get_page_count(url)
     events = []
-    for i in range(1,number_of_pages+1):
+    for i in range(0,number_of_pages+1):
+        if i == 0:
+            events += parse_page(url)
+            continue
         single_page = f'{url}&page={i}'
         events += parse_page(single_page)
     generate_feed(events)
