@@ -18,7 +18,7 @@ def get_page_count(url):
     number_of_pages = soup.find("a",{"title":"Siirry viimeiselle sivulle"})["href"]
     page_number = re.search(r'search_api_views.*page=(\d+)$', number_of_pages)
     return int(page_number.group(1))
-    
+
 def parse_page(url):
     global movie_titles
     response = requests.get(url)
@@ -51,15 +51,14 @@ def generate_feed(events):
     fg.id('https://feeds.awsome.click/menoinfo/')
     fg.title('Artem Kajalainen\'s menoinfo filter feed for pirkanmaa.menoinfo.fi')
     fg.author( {'name':'Artem Kajalainen','email':'artem@kayalaynen.ru'} )
-    fg.link( href='https://feeds.awsome.click/menoinfo/', rel='alternate' )
-    # fg.link( href='http://larskiesow.de/test.atom', rel='self' )
+    fg.link( href='http://feeds.awsome.click/menoinfo/atom.xml', rel='self' )
     fg.language('fi')
     for event in events:
         entry = fg.add_entry()
         entry.id(event["url"])
-        entry.title(event["title"])
+        entry.title(f'{event["title"]} @ {event["date"]}')
         entry.summary(event["summary"])
-        entry.category(term=event["category"],scheme='something')
+        entry.category(term=event["category"])
         entry.link(href=event["url"])
     fg.atom_file('atom.xml')
 
