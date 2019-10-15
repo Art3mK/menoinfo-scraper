@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from time import sleep
 from feedgen.feed import FeedGenerator
 from datetime import date
+from datetime import datetime
 from datetime import timedelta
 
 date = (date.today() + timedelta(days=1)).strftime("%d.%m.%Y")
@@ -26,24 +27,38 @@ def parse_page(url):
     events_raw = soup.find_all("div",["row_image_event","row_no_image_event"])
     events = []
     for event in events_raw:
-        category = event.find("div","event-category-wrapper").find("a","active").string
-        if category == "Seniorit": continue
+        parsed_event = {}
+        parsed_event['category'] = event.find("div","event-category-wrapper").find("a","active").string
+        if parsed_event['category'] == "Seniorit": continue
+        # title_tag is used below to find event url
         title_tag = event.find("div",{"class":"views-field-title"}).find("a")
-        title = title_tag.string
+        parsed_event['title'] = title_tag.string
         # Filter out movies duplicates
-        if category == "Elokuvat":
-            if title in movie_titles:
+        if parsed_event['category'] == "Elokuvat":
+            if parsed_event['title'] in movie_titles:
                 continue
-            movie_titles.append(title)
+            movie_titles.append(parsed_event['title'])
         date = event.find("div","views-field-field-event-date-and-time").find("span","field-content").string
-        place = event.find("div","event-place-wrapper").string
+        parsed_event['date'] = date
         try:
-            summary = event.find("div","views-field-body-summary").find("span","field-content").string
+            start_date, end_date = [datetime.strptime(x, "%d.%m.%Y") for x in date.split('–')]
+            delta = end_date - start_date
+            parsed_event['start_date'] = start_date
+            parsed_event['end_date'] = end_date
+            parsed_event['duration_days'] = (end_date - start_date).days
+        except ValueError:
+            # probably no delimiter there, and only single day is in string
+            event_date = datetime.strptime(date, "%d.%m.%Y")
+            parsed_event['start_date'] = event_date
+            parsed_event['end_date'] = event_date
+            parsed_event['duration_days'] = 1
+        parsed_event['place'] = event.find("div","event-place-wrapper").string
+        try:
+            parsed_event['summary'] = event.find("div","views-field-body-summary").find("span","field-content").string
         except:
-            summary = "summary is missing"
-        event_url = f'http://pirkanmaa.menoinfo.fi{title_tag["href"]}'
-        event = {'title':title, 'date': date, 'place': place, 'summary': summary, 'url': event_url, 'category': category}
-        events.append(event)
+            parsed_event['summary'] = "summary is missing"
+        parsed_event['url'] = f'http://pirkanmaa.menoinfo.fi{title_tag["href"]}'
+        events.append(parsed_event)
     return events
 
 def generate_feed(events):
@@ -54,6 +69,12 @@ def generate_feed(events):
     fg.link( href='http://feeds.awsome.click/menoinfo/atom.xml', rel='self' )
     fg.language('fi')
     for event in events:
+        if event['duration_days'] > 60:
+            pass
+            # TODO
+            # типа добавлять event в стрим раз в неделю?
+            # и нужно будет менять guid ему, чтобы аггрегатор показывал, что это новый event
+            # хранить где-то счетчик для ссылок что ли7 Или просто добавлять к url сегодняшнюю дату
         entry = fg.add_entry()
         entry.id(event["url"])
         entry.title(f'{event["title"]} @ {event["date"]}')
