@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  scraper
+
+Resources:
+  Scraper:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: scraper/
+      Handler: scraper.lambda_handler
+      Runtime: python3.7
+      MemorySize: 256
+      Timeout: 90
+      Events:
+        cron:
+          Type: Schedule # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Name: menoinfo-scraper
+            Schedule: cron(0 11,17 * * ? *)
+            Enabled: true
+      Policies:
+        - AWSLambdaExecute # Managed Policy
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject*
+              Resource: 'arn:aws:s3:::feeds.awsome.click/*'

@@ -1,8 +1,6 @@
 import requests
 import re
-from pprint import pprint
 from bs4 import BeautifulSoup
-from time import sleep
 from feedgen.feed import FeedGenerator
 from datetime import date, datetime, timedelta
 import boto3
@@ -150,4 +148,5 @@ def lambda_handler(event, context):
     bucket_name = 'feeds.awsome.click'
     # Uploads the given file using a managed uploader, which will split up large
     # files automatically and upload parts in parallel.
+    print("Uploading file to s3")
     s3.upload_file(filename, bucket_name, 'menoinfo/atom.xml', ExtraArgs={'ACL':'public-read', 'ContentType': "text/xml"})
