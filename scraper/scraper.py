@@ -134,6 +134,7 @@ def main():
         one_day_events += parse_page(single_page)
     one_day_events = [event for event in one_day_events if filter_event(event, search_date, single_day_events_only=True)]
     events += one_day_events
+    events.sort(key=lambda x: x['start_date'], reverse=False)
     generate_feed(events)
     print(f'Number of events: {len(events)}')
     print(f'Number of pages: {number_of_pages}')
