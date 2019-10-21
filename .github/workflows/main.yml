@@ -7,15 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3-alpine
+    steps:
+    - name: deploy lambda
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: eu-north-1
-    steps:
-    - name: deploy labmda
       run: |
         apk add --no-cache musl-dev gcc
         pip install aws-sam-cli
+        ls -la
         sam build
         sam package --output-template packaged.yaml --s3-bucket menoinfo-scraper
         sam deploy --template-file packaged.yaml --stack-name lalala --capabilities CAPABILITY_IAM
