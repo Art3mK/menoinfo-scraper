@@ -27,6 +27,7 @@ def parse_page(url):
         # title_tag is used below to find event url
         title_tag = event.find("div",{"class":"views-field-title"}).find("a")
         parsed_event['title'] = title_tag.string
+        if re.match(r'.*seniori.*', parsed_event['title'], flags=re.IGNORECASE): continue
         # Filter out movies duplicates
         if parsed_event['category'] == "Elokuvat":
             if parsed_event['title'] in movie_titles:
