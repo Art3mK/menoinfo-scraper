@@ -21,5 +21,5 @@ jobs:
         apk add --no-cache musl-dev gcc
         pip install awscli aws-sam-cli pip==19.2.3
         sam build
-        sam package --output-template packaged.yaml --s3-bucket menoinfo-scraper
+        sam package --output-template-file packaged.yaml --s3-bucket menoinfo-scraper
         sam deploy --template-file packaged.yaml --stack-name lalala --capabilities CAPABILITY_IAM
